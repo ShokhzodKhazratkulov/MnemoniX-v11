@@ -10,9 +10,9 @@ export class GeminiService {
   private initKeys() {
     if (this.apiKeys.length > 0) return;
     
-    const rawKeys = import.meta.env.VITE_GEMINI_API_KEYS;
+    const rawKeys = import.meta.env.VITE_GEMINI_API_KEYS || (typeof process !== 'undefined' ? process.env.VITE_GEMINI_API_KEYS : null);
     if (!rawKeys) {
-      throw new Error("Gemini API Keys not found. Please ensure VITE_GEMINI_API_KEYS is set.");
+      throw new Error("Gemini API Keys not found. Please ensure VITE_GEMINI_API_KEYS is set in your environment.");
     }
     
     this.apiKeys = rawKeys.split(',')

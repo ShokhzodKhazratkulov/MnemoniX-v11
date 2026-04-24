@@ -28,6 +28,8 @@ import {
   Phone,
   MoreVertical
 } from 'lucide-react';
+import { App as CapApp } from '@capacitor/app';
+import { Keyboard } from '@capacitor/keyboard';
 
 import { Language, AppState, AppView, MnemonicResponse, SavedMnemonic, Post, AppTheme } from './types';
 import { GeminiService } from './services/geminiService';
@@ -105,6 +107,101 @@ export default function App() {
   const [selectedMnemonicForReview, setSelectedMnemonicForReview] = useState<SavedMnemonic | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
   const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  const navigateTo = useCallback(async (newView: AppView) => {
+    if (newView !== view) {
+      // Protect private views
+      const privateViews = [
+        AppView.DASHBOARD,
+        AppView.FLASHCARDS,
+        AppView.PROFILE,
+        AppView.MY_POSTS,
+        AppView.MY_REMIXES,
+        AppView.CREATE_POST,
+        AppView.PRACTICE,
+        AppView.CATEGORIES,
+        AppView.CATEGORY_DETAIL
+      ];
+
+      if (privateViews.includes(newView)) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setView(AppView.AUTH);
+          return;
+        }
+      }
+
+      if (newView !== AppView.CREATE_POST) {
+        setRemixSource(null);
+        setEditingPost(null);
+      }
+      setViewHistory(prev => [...prev, view]);
+      setView(newView);
+    }
+  }, [view]);
+
+  const goBack = useCallback(() => {
+    // 1. If reviewing flashcards, go back to flashcards list
+    if (view === AppView.FLASHCARDS && isFlashcardReviewOpen) {
+      setForceCloseFlashcardReview(true);
+      setTimeout(() => setForceCloseFlashcardReview(false), 100);
+      return;
+    }
+
+    // 2. If viewing flashcard detail (hard word), go back to flashcards list
+    if (view === AppView.FLASHCARDS && isFlashcardDetailOpen) {
+      setForceCloseFlashcardDetail(true);
+      setTimeout(() => setForceCloseFlashcardDetail(false), 100);
+      return;
+    }
+
+    // 3. Specific views that should always go to HOME
+    if (view === AppView.FLASHCARDS || view === AppView.DASHBOARD || view === AppView.SEARCH || view === AppView.POSTS) {
+      setView(AppView.HOME);
+      setViewHistory([]);
+      return;
+    }
+
+    if (view === AppView.MY_POSTS) {
+      setView(AppView.PROFILE);
+      return;
+    }
+
+    if (view === AppView.CREATE_POST) {
+      setView(AppView.POSTS);
+      return;
+    }
+
+    if (view === AppView.AUTH) {
+      setView(AppView.HOME);
+      return;
+    }
+
+    if (view === AppView.PRACTICE) {
+      setView(AppView.SEARCH);
+      return;
+    }
+
+    if (view === AppView.CATEGORIES) {
+      setView(AppView.PROFILE);
+      return;
+    }
+
+    if (view === AppView.CATEGORY_DETAIL) {
+      setView(AppView.CATEGORIES);
+      return;
+    }
+
+    // 4. Default back behavior
+    if (viewHistory.length > 0) {
+      const prev = viewHistory[viewHistory.length - 1];
+      setViewHistory(history => history.slice(0, -1));
+      setView(prev);
+    } else if (view !== AppView.HOME) {
+      setView(AppView.HOME);
+    }
+  }, [view, isFlashcardReviewOpen, isFlashcardDetailOpen, viewHistory]);
 
   const contentLanguage = useMemo(() => {
     return userProfile?.preferred_language || language;
@@ -213,6 +310,65 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Capacitor Native Listeners
+  useEffect(() => {
+    let backListener: any;
+    let showListener: any;
+    let hideListener: any;
+    let urlListener: any;
+
+    const setupListeners = async () => {
+      // Check if we are running in a native context
+      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform();
+      
+      if (!isNative) return;
+
+      try {
+        // 1. Handle Hardware Back Button (Android)
+        backListener = await CapApp.addListener('backButton', () => {
+          if (view === AppView.HOME) {
+            CapApp.exitApp();
+          } else {
+            goBack();
+          }
+        });
+
+        // 2. Handle Keyboard Visibility (Layout Issue)
+        showListener = await Keyboard.addListener('keyboardWillShow', () => {
+          setIsKeyboardVisible(true);
+        });
+        hideListener = await Keyboard.addListener('keyboardWillHide', () => {
+          setIsKeyboardVisible(false);
+        });
+
+        // 3. Handle Deep Links (OAuth/Redirect)
+        urlListener = await CapApp.addListener('appUrlOpen', (event: any) => {
+          const urlString = event.url;
+          if (urlString.includes('#')) {
+            const hash = urlString.split('#')[1];
+            if (hash) {
+              supabase.auth.setSession({
+                access_token: new URLSearchParams(hash).get('access_token') || '',
+                refresh_token: new URLSearchParams(hash).get('refresh_token') || ''
+              });
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Capacitor listeners failed to initialize (expected on web):', err);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      if (backListener) backListener.remove();
+      if (showListener) showListener.remove();
+      if (hideListener) hideListener.remove();
+      if (urlListener) urlListener.remove();
+    };
+  }, [view, goBack]);
 
   // Post-fetching on init and hydrate from cache
   useEffect(() => {
@@ -376,100 +532,6 @@ export default function App() {
       categories: { ...en.categories, ...(base.categories || {}) },
     };
   }, [language]);
-
-  const navigateTo = useCallback(async (newView: AppView) => {
-    if (newView !== view) {
-      // Protect private views
-      const privateViews = [
-        AppView.DASHBOARD,
-        AppView.FLASHCARDS,
-        AppView.PROFILE,
-        AppView.MY_POSTS,
-        AppView.MY_REMIXES,
-        AppView.CREATE_POST,
-        AppView.PRACTICE,
-        AppView.CATEGORIES,
-        AppView.CATEGORY_DETAIL
-      ];
-
-      if (privateViews.includes(newView)) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setView(AppView.AUTH);
-          return;
-        }
-      }
-
-      if (newView !== AppView.CREATE_POST) {
-        setRemixSource(null);
-        setEditingPost(null);
-      }
-      setViewHistory(prev => [...prev, view]);
-      setView(newView);
-    }
-  }, [view]);
-
-  const goBack = () => {
-    // 1. If reviewing flashcards, go back to flashcards list
-    if (view === AppView.FLASHCARDS && isFlashcardReviewOpen) {
-      setForceCloseFlashcardReview(true);
-      setTimeout(() => setForceCloseFlashcardReview(false), 100);
-      return;
-    }
-
-    // 2. If viewing flashcard detail (hard word), go back to flashcards list
-    if (view === AppView.FLASHCARDS && isFlashcardDetailOpen) {
-      setForceCloseFlashcardDetail(true);
-      setTimeout(() => setForceCloseFlashcardDetail(false), 100);
-      return;
-    }
-
-    // 3. Specific views that should always go to HOME
-    if (view === AppView.FLASHCARDS || view === AppView.DASHBOARD || view === AppView.SEARCH || view === AppView.POSTS) {
-      setView(AppView.HOME);
-      setViewHistory([]);
-      return;
-    }
-
-    if (view === AppView.MY_POSTS) {
-      setView(AppView.PROFILE);
-      return;
-    }
-
-    if (view === AppView.CREATE_POST) {
-      setView(AppView.POSTS);
-      return;
-    }
-
-    if (view === AppView.AUTH) {
-      setView(AppView.HOME);
-      return;
-    }
-
-    if (view === AppView.PRACTICE) {
-      setView(AppView.SEARCH);
-      return;
-    }
-
-    if (view === AppView.CATEGORIES) {
-      setView(AppView.PROFILE);
-      return;
-    }
-
-    if (view === AppView.CATEGORY_DETAIL) {
-      setView(AppView.CATEGORIES);
-      return;
-    }
-
-    // 4. Default back behavior
-    if (viewHistory.length > 0) {
-      const prev = viewHistory[viewHistory.length - 1];
-      setViewHistory(prev => prev.slice(0, -1));
-      setView(prev);
-    } else if (view !== AppView.HOME) {
-      setView(AppView.HOME);
-    }
-  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -1669,7 +1731,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Bottom Navigation for Mobile */}
-      {view !== AppView.AUTH && (
+      {view !== AppView.AUTH && !isKeyboardVisible && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl border-t border-gray-100 dark:border-slate-800/50 pb-safe">
           <div className="max-w-md mx-auto flex items-center justify-around px-1 py-1">
             {[

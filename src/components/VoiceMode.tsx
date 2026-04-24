@@ -166,7 +166,8 @@ export const VoiceMode = React.memo(({ onClose, uiLanguage, contentLanguage }: P
 
   useEffect(() => {
     mountedRef.current = true;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.VITE_GEMINI_API_KEYS?.split(',')[0] || process.env.API_KEY || import.meta.env.VITE_GEMINI_API_KEYS?.split(',')[0];
+    const ai = new GoogleGenAI({ apiKey });
     let sessionPromise: Promise<any>;
 
     const startSession = async () => {

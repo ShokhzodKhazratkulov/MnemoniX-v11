@@ -111,126 +111,138 @@ export const Dashboard = React.memo(({ savedMnemonics, language, onDelete, onNav
     <div className="max-w-7xl mx-auto space-y-12 animate-fadeIn pb-20 px-4 relative">
       <AnimatePresence>
         {showCelebration && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowCelebration(false)}
-            className="fixed inset-0 z-[100] flex items-start justify-center pt-10 sm:pt-20 bg-black/20 backdrop-blur-[2px] cursor-pointer px-4"
-          >
-            {/* Confetti Particles */}
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ 
-                  x: 0, 
-                  y: -100, 
-                  scale: 0,
-                  rotate: 0 
-                }}
-                animate={{ 
-                  x: (Math.random() - 0.5) * window.innerWidth, 
-                  y: window.innerHeight + 100, 
-                  scale: [0, 1, 1, 0],
-                  rotate: Math.random() * 1080 
-                }}
-                transition={{ 
-                  duration: 4 + Math.random() * 4,
-                  repeat: Infinity,
-                  ease: "linear",
-                  delay: Math.random() * 5
-                }}
-                className={`absolute w-2 h-2 sm:w-4 sm:h-4 rounded-sm ${
-                  ['bg-emerald-400', 'bg-accent', 'bg-amber-400', 'bg-rose-400', 'bg-sky-400', 'bg-neutral'][i % 6]
-                }`}
-              />
-            ))}
-
-            {/* Floating Icons */}
-            {[...Array(8)].map((_, i) => (
-              <motion.div
-                key={`icon-${i}`}
-                initial={{ opacity: 0, y: 100 }}
-                animate={{ 
-                  opacity: [0, 1, 1, 0],
-                  y: -window.innerHeight,
-                  x: (Math.random() - 0.5) * window.innerWidth
-                }}
-                transition={{ 
-                  duration: 6 + Math.random() * 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: Math.random() * 10
-                }}
-                className="absolute text-emerald-500/30 dark:text-emerald-400/20"
-              >
-                <Award size={Math.random() * 40 + 20} />
-              </motion.div>
-            ))}
-
+          <div className="fixed inset-0 z-[100] preserve-3d overflow-hidden">
+            {/* Backdrop (Non-interactive for dismissal) */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.5, y: -100, rotate: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0.5, y: -200, rotate: 10 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-slate-900 border-8 border-emerald-500/20 p-8 sm:p-12 rounded-[3rem] sm:rounded-[4rem] shadow-[0_40px_150px_rgba(16,185,129,0.6)] text-center space-y-6 max-w-lg relative overflow-hidden"
-            >
-              {/* Animated Background Glow */}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[4px]"
+            />
+
+            {/* Confetti Particles (Non-interactive) */}
+            <div className="absolute inset-0 pointer-events-none">
+              {[...Array(60)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ 
+                    x: Math.random() * window.innerWidth, 
+                    y: -20, 
+                    scale: 0,
+                    rotate: 0 
+                  }}
+                  animate={{ 
+                    y: window.innerHeight + 100, 
+                    scale: [0, 1, 1, 0],
+                    rotate: Math.random() * 1080 
+                  }}
+                  transition={{ 
+                    duration: 3 + Math.random() * 3,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: Math.random() * 5
+                  }}
+                  className={`absolute w-1.5 h-1.5 sm:w-3 sm:h-3 rounded-full ${
+                    ['bg-emerald-400', 'bg-accent', 'bg-amber-400', 'bg-rose-400', 'bg-sky-400', 'bg-purple-400'][i % 6]
+                  }`}
+                  style={{ left: 0 }}
+                />
+              ))}
+            </div>
+
+            {/* Floating Icons (Non-interactive) */}
+            <div className="absolute inset-0 pointer-events-none">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={`icon-${i}`}
+                  initial={{ opacity: 0, y: 100 }}
+                  animate={{ 
+                    opacity: [0, 1, 1, 0],
+                    y: -window.innerHeight,
+                    x: (Math.random() - 0.5) * window.innerWidth
+                  }}
+                  transition={{ 
+                    duration: 5 + Math.random() * 5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: Math.random() * 8
+                  }}
+                  className="absolute text-emerald-500/20 dark:text-emerald-400/10"
+                  style={{ left: '50%' }}
+                >
+                  <Award size={Math.random() * 60 + 40} />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Modal Content */}
+            <div className="absolute inset-0 flex items-start justify-center pt-8 sm:pt-20 px-4 pointer-events-none">
               <motion.div 
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3]
-                }}
-                transition={{ duration: 4, repeat: Infinity }}
-                className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-accent/20 pointer-events-none"
-              />
-              
-              <div className="relative z-10">
+                initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: -50 }}
+                onPointerDown={() => setShowCelebration(false)}
+                className="bg-white dark:bg-slate-900 border-8 border-emerald-500/20 p-8 sm:p-12 rounded-[3.5rem] sm:rounded-[4.5rem] shadow-[0_45px_100px_rgba(16,185,129,0.4)] text-center space-y-6 max-w-lg w-full relative overflow-hidden pointer-events-auto cursor-pointer"
+              >
+                {/* Animated Background Glow */}
                 <motion.div 
                   animate={{ 
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 10, -10, 0]
+                    scale: [1, 1.3, 1],
+                    opacity: [0.2, 0.4, 0.2]
                   }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-20 h-20 sm:w-28 sm:h-28 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20"
-                >
-                  <Award className="w-10 h-10 sm:w-14 sm:h-14 text-emerald-600 dark:text-emerald-400" />
-                </motion.div>
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-accent/10 pointer-events-none"
+                />
                 
-                <h3 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white leading-tight tracking-tighter">
-                  {(fullT.congratsTitle || "Congratulations!").split('\n').map((line: string, i: number) => (
-                    <React.Fragment key={i}>
-                      {line}
-                      {i === 0 && <br />}
-                    </React.Fragment>
-                  ))}
-                </h3>
-                
-                <div className="py-4 space-y-2">
-                  <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                    {fullT.targetReached}
-                  </p>
-                  <p className="text-gray-500 dark:text-gray-400 font-bold text-lg">
-                    {fullT.dailyGoalHit.replace('{goal}', (profile?.daily_goal || 10).toString())}
-                  </p>
-                </div>
-
-                <p className="text-gray-400 dark:text-gray-500 font-medium italic">
-                  {fullT.successQuote}
-                </p>
-                
-                <div className="pt-8">
-                  <motion.div
-                    animate={{ y: [0, 5, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="inline-block px-6 py-2 bg-gray-100 dark:bg-slate-800 rounded-full text-[10px] sm:text-xs font-black text-gray-400 uppercase tracking-[0.3em]"
+                <div className="relative z-10">
+                  <motion.div 
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{ duration: 2.5, repeat: Infinity }}
+                    className="w-20 h-20 sm:w-28 sm:h-28 bg-emerald-100 dark:bg-emerald-900/40 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-emerald-500/10"
                   >
-                    {fullT.tapToContinue}
+                    <Award className="w-10 h-10 sm:w-14 sm:h-14 text-emerald-600 dark:text-emerald-400" />
                   </motion.div>
+                  
+                  <h3 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white leading-tight tracking-tighter">
+                    {(fullT.congratsTitle || "Congratulations!").split('\n').map((line: string, i: number) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        {i === 0 && <br />}
+                      </React.Fragment>
+                    ))}
+                  </h3>
+                  
+                  <div className="py-4 space-y-2">
+                    <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                      {fullT.targetReached}
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400 font-bold text-lg">
+                      {fullT.dailyGoalHit.replace('{goal}', (profile?.daily_goal || 10).toString())}
+                    </p>
+                  </div>
+
+                  <div className="relative p-6 bg-gray-50 dark:bg-slate-800/50 rounded-3xl border border-gray-100 dark:border-slate-800">
+                    <p className="text-gray-600 dark:text-gray-300 font-bold italic leading-relaxed">
+                      {fullT.successQuote}
+                    </p>
+                  </div>
+                  
+                  <div className="pt-8">
+                    <motion.div
+                      animate={{ y: [0, 8, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="inline-block px-8 py-3 bg-emerald-500 dark:bg-emerald-600 rounded-full text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.4em] shadow-lg shadow-emerald-500/20"
+                    >
+                      {fullT.tapToContinue}
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </motion.div>
+              </motion.div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
 
